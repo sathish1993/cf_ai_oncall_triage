@@ -76,3 +76,11 @@ The assistant's sandbox could read the deployed page but couldn't send POST requ
 > it worked. I was able debug 503 error and resolve it
 
 I confirmed the deployed app end to end against the real Llama 3.3: triage, chat, resolve and postmortem all worked on the Checkout 503s example.
+
+> https://cf-ai-oncall-triage.sathish-kumar-93.workers.dev/?i=20261108-2f8d2705
+
+The assistant reviewed this first real incident's data and found three problems in the model's behaviour. It tightened the prompts in `src/prompts.ts` to fix them:
+
+- The chat assistant read a bare "200" as "error rate is now 0%". It now asks what an ambiguous reply means instead of inventing a metric.
+- The chat assistant said it had "marked the incident resolved/closed", which it can't do. It now tells the engineer to press Resolve.
+- The postmortem timeline used the tool's own timestamps (16:13Z) instead of the alert's times (13:02 deploy, 13:05 errors). It now takes production event times from the report and labels tool times as response times.
