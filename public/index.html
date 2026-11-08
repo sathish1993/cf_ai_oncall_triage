@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Triage Room</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <span class="beacon" aria-hidden="true"></span>
+          <div>
+            <div class="brand-name">Triage Room</div>
+            <div class="brand-sub">on-call partner on Workers AI</div>
+          </div>
+        </div>
+        <button class="btn btn-primary wide" id="new-incident">New incident</button>
+        <div class="list-head">Incidents</div>
+        <ul class="incident-list" id="incident-list"></ul>
+        <div class="memory">
+          <div><strong id="memory-count">0</strong> resolved incidents in memory</div>
+          <button class="link" id="seed">Load sample history</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section id="intake" class="intake">
+          <h1>What's paging you?</h1>
+          <p class="hint">
+            Paste the alert, stack trace, or log lines. A workflow pulls out the signals, checks them against
+            incidents you've already resolved, and gives you ranked causes with read-only checks.
+          </p>
+          <textarea id="report" spellcheck="false" placeholder="[FIRING] checkout-api 5xx rate 18% ..."></textarea>
+          <div class="intake-row">
+            <div class="examples" id="examples"><span>Try:</span></div>
+            <button class="btn btn-primary" id="start">Start triage</button>
+          </div>
+          <p class="error" id="intake-error"></p>
+        </section>
+
+        <section id="incident" class="incident" hidden>
+          <header class="inc-head">
+            <button class="btn btn-ghost menu" id="menu" aria-label="Incidents">☰</button>
+            <div class="inc-title-wrap">
+              <div class="inc-meta"><span id="inc-sev" class="sev"></span><span id="inc-status" class="status"></span><span id="inc-id" class="mono dim"></span></div>
+              <h2 id="inc-title"></h2>
+            </div>
+            <button class="btn" id="resolve-open" disabled>Resolve</button>
+          </header>
+
+          <ol class="stages" id="stages"></ol>
+
+          <div class="log" id="log"></div>
+
+          <form class="resolve" id="resolve-form" hidden>
+            <label for="resolve-note">What fixed it? This goes into the postmortem and the team's memory.</label>
+            <textarea id="resolve-note" rows="3" placeholder="Rolled back to v412; the new pool config leaked connections on timeout."></textarea>
+            <div class="row">
+              <button type="button" class="btn btn-ghost" id="resolve-cancel">Cancel</button>
+              <button type="submit" class="btn btn-primary">Mark resolved</button>
+            </div>
+          </form>
+
+          <details class="postmortem" id="postmortem" hidden>
+            <summary>Postmortem draft <button class="link" id="copy-pm" type="button">Copy Markdown</button></summary>
+            <div class="md" id="postmortem-body"></div>
+          </details>
+
+          <form class="composer" id="composer">
+            <textarea id="message" rows="1" placeholder="Paste new output, or ask what to check next"></textarea>
+            <button class="btn btn-primary" type="submit" id="send">Send</button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script src="/vendor/marked.min.js"></script>
+    <script src="/vendor/purify.min.js"></script>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

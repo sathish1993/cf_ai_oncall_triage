@@ -1,0 +1,20 @@
+{
+  "name": "cf_ai_oncall_triage",
+  "version": "1.0.0",
+  "description": "On-call triage agent on Cloudflare: Workers AI (Llama 3.3), Workflows, Durable Objects",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:mock": "wrangler dev -c wrangler.mock.jsonc",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261104.1",
+    "dompurify": "^3.1.6",
+    "marked": "^12.0.2",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.158.0"
+  },
+  "private": true
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cf-ai-oncall-triage",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-10-01",
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "ai": { "binding": "AI" },
+  "durable_objects": {
+    "bindings": [
+      { "name": "INCIDENT", "class_name": "IncidentRoom" },
+      { "name": "LEDGER", "class_name": "IncidentLedger" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["IncidentRoom", "IncidentLedger"] }],
+  "workflows": [{ "name": "incident-triage", "binding": "TRIAGE", "class_name": "TriageWorkflow" }],
+  "observability": { "enabled": true }
+}
