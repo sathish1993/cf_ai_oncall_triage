@@ -62,3 +62,13 @@ The answer was a chat explanation only. No code changed.
 > document all the process and available api, its input and response with examples.
 
 This added [`docs/API.md`](docs/API.md). It covers the incident lifecycle and status/stage model, every HTTP endpoint with curl examples, responses and error codes, and the Workflow steps and Durable Object methods. I captured the response shapes and error codes from a local run before writing it up.
+
+## 6. Deploying and testing
+
+> ok now what do you need for prod deploy? how do I test if everything works as expected?
+
+> I deployed myself in cloudflare, check this out https://cf-ai-oncall-triage.sathish-kumar-93.workers.dev/
+>
+> test it our for me with basic examples
+
+The assistant's sandbox could read the deployed page but couldn't send POST requests to it, so it wrote `scripts/smoke.mjs` instead. The script runs the basic examples against any deployment and prints a pass or fail for each check.
