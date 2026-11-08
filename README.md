@@ -73,6 +73,12 @@ npx wrangler deploy
 
 Wrangler creates the Durable Object classes and the Workflow from `wrangler.jsonc` on the first deploy. It prints the `*.workers.dev` URL when it's done.
 
+To check a deployment end to end (seed memory, triage with and without a memory match, chat, resolve, postmortem, memory), run:
+
+```bash
+node scripts/smoke.mjs https://cf-ai-oncall-triage.<you>.workers.dev
+```
+
 ## Repo layout
 
 ```
@@ -84,6 +90,7 @@ src/prompts.ts        every system prompt and JSON schema the app sends to Llama
 src/llm.ts            Workers AI calls (chat, JSON mode, embeddings) and cosine similarity
 src/mock-ai.ts        canned responses for offline dev
 src/samples.ts        sample incident history for the demo
+scripts/smoke.mjs     end-to-end smoke test against a running deployment
 public/               chat UI (plain HTML/CSS/JS, no build step)
 PROMPTS.md            the AI-assisted coding prompts used to build this
 docs/API.md           incident lifecycle, HTTP API with examples, internal interfaces

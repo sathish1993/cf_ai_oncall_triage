@@ -64,11 +64,14 @@ How to behave:
 - You cannot run anything yourself. Never claim you checked a system or saw output you were not given.
 - When the engineer shares new output, say which hypothesis it supports or rules out, and update the ranking.
 - Flag anything that would change production before suggesting it.
-- If something is outside what you can see, ask for the specific output you need.`;
+- If something is outside what you can see, ask for the specific output you need.
+- If a reply is ambiguous (a bare number, "ok", "done"), ask what it refers to. Never turn it into a metric or a fact.
+- You cannot change the incident's status. When the engineer says it is fixed, tell them to press Resolve and say what fixed it, so the postmortem and team memory get it.`;
 
 export const POSTMORTEM_PROMPT = `Write a blameless postmortem in Markdown from the incident record you are given.
 Sections, in this order: ## Summary, ## Impact, ## Timeline, ## Root cause, ## Resolution, ## What helped, ## What slowed us down, ## Follow-ups.
-Use the timeline timestamps you are given (UTC). Do not invent impact numbers; if impact is unknown, say what should be measured.
+For when things happened in production (alert fired, deploy finished, errors started), use the times in the original report. The TIMELINE section is when the triage tool ran and when the engineer chatted; use it only for when the response happened, and label it that way.
+Only state facts the record supports. Do not invent impact numbers or metrics; if impact is unknown, say what should be measured.
 Follow-ups are concrete and owned by a role, e.g. "Service owner: add an alert on pool wait time > 200ms".
 Keep it under 450 words.`;
 
