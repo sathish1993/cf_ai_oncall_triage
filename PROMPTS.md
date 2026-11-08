@@ -84,3 +84,13 @@ The assistant reviewed this first real incident's data and found three problems 
 - The chat assistant read a bare "200" as "error rate is now 0%". It now asks what an ambiguous reply means instead of inventing a metric.
 - The chat assistant said it had "marked the incident resolved/closed", which it can't do. It now tells the engineer to press Resolve.
 - The postmortem timeline used the tool's own timestamps (16:13Z) instead of the alert's times (13:02 deploy, 13:05 errors). It now takes production event times from the report and labels tool times as response times.
+
+## 7. Publishing the live URL
+
+> ok check one more time https://cf-ai-oncall-triage.sathish-kumar-93.workers.dev/
+
+The assistant read the latest live incident. It found that recall matched the earlier real incident at 0.97 similarity and that the triage cited it under "Seen before".
+
+> alright. update readme with this prod url, so they can try it out
+
+This added a "Try it live" section near the top of the README, with the URL and a five-step walkthrough.

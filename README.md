@@ -10,6 +10,18 @@
 
 I built a version of this at work for a Kubernetes platform, on a different stack. This one is the same idea rebuilt with Cloudflare's primitives, and it turned out to be a good fit: an incident has a long, mostly idle life, which is exactly what Workflows and Durable Objects are good at.
 
+## Try it live
+
+**https://cf-ai-oncall-triage.sathish-kumar-93.workers.dev/**
+
+1. Click **Checkout 503s** under the paste box, then **Start triage**. Signals, memory recall and hypotheses take about 15 seconds.
+2. Ask it something, or paste new "output" such as `DB shows 20 connections idle in transaction since the 13:02 deploy`.
+3. Click **Resolve** and say what fixed it. The postmortem draft opens, and the incident goes into memory.
+4. Paste a similar alert as a new incident. The **Memory** stage and the "Seen before" section should point back to the one you just resolved.
+5. Try **Kafka lag** to see triage with nothing to match against.
+
+The deployment is a shared demo with no login, so you'll see incidents other people created. Please don't paste real logs or secrets. If memory looks empty, **Load sample history** in the sidebar adds five made-up past incidents.
+
 ## How it maps to the assignment
 
 | Requirement | What this app uses |
