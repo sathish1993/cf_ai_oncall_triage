@@ -47,6 +47,8 @@ I built a version of this at work for a Kubernetes platform, on a different stac
 - **Memory cards, not raw transcripts.** When an incident is resolved, Llama condenses it into a card written in terms of observable signals (error strings, components), and only that card is embedded. Matching a new page's signals against past signals works much better than matching against long chat logs full of people's names and timestamps.
 - **Read-only by default.** The hypothesis prompt asks for one read-only check per hypothesis and makes the model tag anything that changes production with `[mutating]`. The assistant also can't run anything, and it's told never to pretend it did. On-call tooling that confidently suggests `kubectl delete` is worse than none.
 
+The full lifecycle, every endpoint (with request and response examples) and the internal Workflow and Durable Object interfaces are documented in [docs/API.md](docs/API.md).
+
 ## Try it
 
 You need Node 20+ and a Cloudflare account (the Workers free plan includes Workers AI, Workflows and SQLite-backed Durable Objects, which is enough for a demo).
@@ -84,6 +86,7 @@ src/mock-ai.ts        canned responses for offline dev
 src/samples.ts        sample incident history for the demo
 public/               chat UI (plain HTML/CSS/JS, no build step)
 PROMPTS.md            the AI-assisted coding prompts used to build this
+docs/API.md           incident lifecycle, HTTP API with examples, internal interfaces
 ```
 
 ## Known limits

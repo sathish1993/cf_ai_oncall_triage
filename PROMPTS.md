@@ -50,3 +50,15 @@ The review found ten issues. All of them were fixed:
 - **A failed workflow start left a zombie incident.** Creating an incident now marks it failed when the workflow can't be started.
 - **Cleanup.** Requests for unknown ids are rejected from the ledger before any Durable Object is created. The poll endpoint no longer calls the Workflows status API, which the UI never read. Sample history is embedded in one batched call. Seeded rows are filtered out in SQL instead of in the browser.
 - **Concurrent chat replies.** Two chat turns sent at once can be answered without seeing each other. I kept this behaviour and corrected the class comment, which claimed otherwise.
+
+## 4. Understanding the layout
+
+> ok explain me in simple tree structure, what folders we have and significance of those
+
+The answer was a chat explanation only. No code changed.
+
+## 5. Documentation
+
+> document all the process and available api, its input and response with examples.
+
+This added [`docs/API.md`](docs/API.md). It covers the incident lifecycle and status/stage model, every HTTP endpoint with curl examples, responses and error codes, and the Workflow steps and Durable Object methods. I captured the response shapes and error codes from a local run before writing it up.
