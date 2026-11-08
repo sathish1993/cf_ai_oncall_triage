@@ -37,3 +37,16 @@ What came out of this, and the decisions behind it:
 - **Safety.** Hypotheses must come with read-only checks, and mutating actions are tagged `[mutating]`.
 - **Offline mode.** Wrangler needs an account for the AI binding even in local dev, so a `wrangler.mock.jsonc` and `src/mock-ai.ts` let the full flow run with canned responses. This is how the flow was tested end to end (create → triage → chat → resolve → postmortem → memory) before deploying.
 - **UI fixes found while testing.** The CDN-loaded Markdown libraries were vendored into `public/vendor/` so the app has no third-party runtime dependencies, and a horizontal overflow on phone widths was fixed.
+
+## 3. Code review
+
+> run a code-review skill on the opened PR
+
+The review found ten issues. All of them were fixed:
+
+- **Resolve was not guarded.** A double click, or a stale incident, could resolve it twice or get stuck in "resolving". Resolving is now an atomic claim on the Durable Object (`beginResolve`), and it's rolled back if the workflow can't be signalled.
+- **A step that ran out of retries left the UI polling forever.** The workflow now catches that case, marks the running stage and the incident as `failed`, and the UI shows the failure and stops polling.
+- **A retried hypotheses step could post the triage message twice.** It also opened a window where a resolve could be overwritten back to "investigating". Both are fixed by one idempotent `completeTriage` call that writes the triage, the message, the stages and the status together.
+- **A failed workflow start left a zombie incident.** Creating an incident now marks it failed when the workflow can't be started.
+- **Cleanup.** Requests for unknown ids are rejected from the ledger before any Durable Object is created. The poll endpoint no longer calls the Workflows status API, which the UI never read. Sample history is embedded in one batched call. Seeded rows are filtered out in SQL instead of in the browser.
+- **Concurrent chat replies.** Two chat turns sent at once can be answered without seeing each other. I kept this behaviour and corrected the class comment, which claimed otherwise.

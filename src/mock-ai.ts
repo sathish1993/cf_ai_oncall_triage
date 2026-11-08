@@ -34,6 +34,8 @@ export function mockChat(messages: ChatMessage[]): string {
 
 export function mockJson(kind: string, messages: ChatMessage[]): unknown {
   const text = lastUser(messages);
+  // Lets you see how a step that keeps failing shows up in the UI.
+  if (text.includes("__mock_fail__")) throw new Error("mock model returned garbage");
   const firstLine = text.split("\n").find((l) => l.trim()) ?? "Incident";
   const errors = text.match(/[A-Za-z]*(?:Error|Exception|refused|timeout|OOMKilled|expired)[^\n]{0,60}/g) ?? [];
   if (kind === "signals") {

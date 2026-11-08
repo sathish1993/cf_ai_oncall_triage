@@ -58,6 +58,12 @@ export async function embed(env: Env, text: string): Promise<number[]> {
   return out.data[0];
 }
 
+export async function embedMany(env: Env, texts: string[]): Promise<number[][]> {
+  if (env.MOCK_AI === "1") return texts.map(mockEmbed);
+  const out = (await run(env)(EMBED_MODEL, { text: texts.map((t) => t.slice(0, 2000)) })) as { data: number[][] };
+  return out.data;
+}
+
 export function cosine(a: number[], b: number[]): number {
   let dot = 0;
   let na = 0;

@@ -51,6 +51,10 @@ export class IncidentLedger extends DurableObject<Env> {
     );
   }
 
+  has(id: string): boolean {
+    return this.sql.exec(`SELECT 1 FROM incidents WHERE id = ?`, id).toArray().length > 0;
+  }
+
   update(id: string, fields: { title?: string; status?: string; severity?: string }): void {
     for (const [k, v] of Object.entries(fields)) {
       if (v === undefined || !["title", "status", "severity"].includes(k)) continue;
@@ -108,7 +112,7 @@ export class IncidentLedger extends DurableObject<Env> {
         has_embedding: number;
       }>(
         `SELECT id, title, status, severity, created_at, resolved_at, embedding IS NOT NULL AS has_embedding
-         FROM incidents ORDER BY created_at DESC LIMIT 100`,
+         FROM incidents WHERE id NOT LIKE 'hist-%' ORDER BY created_at DESC LIMIT 100`,
       )
       .toArray()
       .map(({ has_embedding, ...r }) => ({ ...r, in_memory: has_embedding === 1 }));

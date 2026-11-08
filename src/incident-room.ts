@@ -24,6 +24,7 @@ export interface IncidentMeta {
   related?: RecallHit[];
   resolution?: string;
   postmortem?: string;
+  error?: string;
 }
 
 export interface Snapshot {
@@ -37,8 +38,10 @@ const CHAT_HISTORY = 16;
 /**
  * One Durable Object per incident. It owns everything about that incident: the original
  * report, the chat, the triage output, and the per-stage timeline the workflow writes to.
- * Because a single object serialises its requests, the workflow and a chatting engineer
- * can write to it at the same time without races.
+ * Each RPC method's storage writes are applied atomically by the object, so the workflow
+ * and a chatting engineer can both write without clobbering each other. reply() is the one
+ * method that awaits a model call mid-way; two chat turns sent at once can each be answered
+ * without seeing the other, which is acceptable for a chat and avoids holding a lock.
  */
 export class IncidentRoom extends DurableObject<Env> {
   private sql: SqlStorage;
@@ -71,6 +74,53 @@ export class IncidentRoom extends DurableObject<Env> {
       this.sql.exec(`INSERT OR IGNORE INTO stages (name, ord, status) VALUES (?, ?, 'pending')`, name, ord),
     );
     this.addMessage("user", report);
+  }
+
+  getTriage(): Triage | undefined {
+    return this.getMeta<Triage>("triage");
+  }
+
+  exists(): boolean {
+    return this.getMeta("id") !== undefined;
+  }
+
+  /**
+   * Record triage results and hand the incident to the engineer, in one atomic call so a
+   * workflow step retry cannot post the triage message twice.
+   */
+  completeTriage(triage: Triage, related: RecallHit[], message: string, topCause: string): boolean {
+    if (this.getMeta("triage")) return false;
+    this.setMeta({ triage, related, status: "investigating" });
+    this.addMessage("assistant", message);
+    this.setStage("hypotheses", "done", topCause);
+    this.setStage("resolution", "running", "waiting for an engineer to resolve");
+    return true;
+  }
+
+  /**
+   * Claim the right to resolve. Returns false unless the incident is waiting on an engineer,
+   * so a double click or a second engineer cannot resolve twice.
+   */
+  beginResolve(): string {
+    const status = this.getMeta<string>("status");
+    if (status !== "investigating") return status ?? "unknown";
+    this.setMeta({ status: "resolving" });
+    return "ok";
+  }
+
+  /** Undo beginResolve when the workflow could not be signalled. */
+  abortResolve(): void {
+    if (this.getMeta("status") === "resolving") this.setMeta({ status: "investigating" });
+  }
+
+  /** Mark whatever stage was running as failed and park the incident. */
+  fail(reason: string): void {
+    this.sql.exec(
+      `UPDATE stages SET status = 'failed', detail = ?, at = ? WHERE status = 'running'`,
+      reason.slice(0, 200),
+      Date.now(),
+    );
+    this.setMeta({ status: "failed", error: reason.slice(0, 500) });
   }
 
   setMeta(fields: Record<string, unknown>): void {

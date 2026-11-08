@@ -23,12 +23,31 @@ export interface ResolutionEvent {
  *   signals -> recall -> hypotheses -> (wait for "resolved") -> postmortem -> memory
  *
  * Each model call is its own step, so a Workers AI hiccup retries that step only, and a
- * finished step is never re-run (no duplicate chat messages, no double-billing the model).
+ * finished step is never re-run. Writes inside a step are idempotent, so a retried step
+ * cannot post a duplicate chat message either.
  * The workflow then sleeps on waitForEvent, for up to a week, until a human resolves the
  * incident from the chat. Nothing is held in memory while it waits.
  */
 export class TriageWorkflow extends WorkflowEntrypoint<Env, TriageParams> {
   async run(event: WorkflowEvent<TriageParams>, step: WorkflowStep) {
+    const { incidentId } = event.payload;
+    try {
+      return await this.lifecycle(event, step);
+    } catch (err) {
+      // A step ran out of retries. Leave the incident in a state the UI can show,
+      // instead of a stage that says "running" forever.
+      const reason = `step failed: ${(err as Error).message ?? String(err)}`;
+      await step.do("mark failed", async () => {
+        const room = this.env.INCIDENT.get(this.env.INCIDENT.idFromName(incidentId));
+        const ledger = this.env.LEDGER.get(this.env.LEDGER.idFromName("global"));
+        await room.fail(reason);
+        await ledger.update(incidentId, { status: "failed" });
+      });
+      throw err;
+    }
+  }
+
+  private async lifecycle(event: WorkflowEvent<TriageParams>, step: WorkflowStep) {
     const { incidentId, report } = event.payload;
     const room = this.env.INCIDENT.get(this.env.INCIDENT.idFromName(incidentId));
     const ledger = this.env.LEDGER.get(this.env.LEDGER.idFromName("global"));
@@ -66,6 +85,8 @@ export class TriageWorkflow extends WorkflowEntrypoint<Env, TriageParams> {
     });
 
     const triage = await step.do("draft hypotheses", MODEL_STEP, async () => {
+      const existing = await room.getTriage();
+      if (existing) return existing; // a previous attempt already finished and posted
       await room.setStage("hypotheses", "running");
       const t = await chatJson<Triage>(
         this.env,
@@ -84,11 +105,13 @@ export class TriageWorkflow extends WorkflowEntrypoint<Env, TriageParams> {
         HYPOTHESES_SCHEMA,
       );
       t.hypotheses = (t.hypotheses ?? []).sort((a, b) => b.confidence - a.confidence).slice(0, 4);
-      await room.setMeta({ triage: t, related: similar.filter((h) => t.related_incident_ids?.includes(h.id)) });
-      await room.addMessage("assistant", renderTriage(signals, t, similar));
-      await room.setStage("hypotheses", "done", t.hypotheses[0]?.cause ?? "no hypothesis");
-      await room.setStage("resolution", "running", "waiting for an engineer to resolve");
-      await room.setMeta({ status: "investigating" });
+      // One atomic, idempotent call: a retry after this point cannot post a second triage message.
+      await room.completeTriage(
+        t,
+        similar.filter((h) => t.related_incident_ids?.includes(h.id)),
+        renderTriage(signals, t, similar),
+        t.hypotheses[0]?.cause ?? "no hypothesis",
+      );
       await ledger.update(incidentId, { status: "investigating" });
       return t;
     });

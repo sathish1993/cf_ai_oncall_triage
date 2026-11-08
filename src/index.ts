@@ -1,4 +1,4 @@
-import { embed } from "./llm";
+import { embedMany } from "./llm";
 import { SAMPLE_HISTORY } from "./samples";
 import type { Env } from "./types";
 
@@ -40,26 +40,27 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
       const room = env.INCIDENT.get(env.INCIDENT.idFromName(id));
       await room.init(id, text.slice(0, MAX_REPORT), workflowId);
       await ledger.open(id, provisionalTitle(text));
-      await env.TRIAGE.create({ id: workflowId, params: { incidentId: id, report: text.slice(0, MAX_REPORT) } });
+      try {
+        await env.TRIAGE.create({ id: workflowId, params: { incidentId: id, report: text.slice(0, MAX_REPORT) } });
+      } catch (err) {
+        // Don't leave an incident that looks live but has no workflow behind it.
+        await room.fail(`could not start triage: ${(err as Error).message}`);
+        await ledger.update(id, { status: "failed" });
+        throw err;
+      }
       return json({ id }, 201);
     }
   }
 
   if (parts[1] === "incidents" && parts[2]) {
     const id = parts[2];
-    if (!/^[a-z0-9-]{6,40}$/.test(id)) return json({ error: "bad incident id" }, 400);
+    if (!/^\d{8}-[0-9a-f]{8}$/.test(id)) return json({ error: "bad incident id" }, 400);
+    // Check the ledger first so a request for a made-up id never instantiates a Durable Object.
+    if (!(await ledger.has(id))) return json({ error: "no such incident" }, 404);
     const room = env.INCIDENT.get(env.INCIDENT.idFromName(id));
-    const snap = await room.snapshot();
-    if (!snap.meta.id) return json({ error: "no such incident" }, 404);
 
     if (parts.length === 3 && method === "GET") {
-      let workflow = "unknown";
-      try {
-        workflow = (await (await env.TRIAGE.get(String(snap.meta.workflowId))).status()).status;
-      } catch {
-        /* status is best effort; the room's stages are the source of truth for the UI */
-      }
-      return json({ ...snap, workflow });
+      return json(await room.snapshot());
     }
 
     if (parts[3] === "messages" && method === "POST") {
@@ -74,23 +75,26 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
       const { note } = await body<{ note?: string }>(request);
       const text = (note ?? "").trim();
       if (!text) return json({ error: "Say what fixed it, so it can be remembered." }, 400);
-      if (snap.meta.status === "resolved") return json({ error: "already resolved" }, 409);
-      if (!snap.meta.triage) return json({ error: "triage is still running" }, 409);
+      const claim = await room.beginResolve();
+      if (claim !== "ok") return json({ error: `can't resolve an incident that is ${claim}` }, 409);
+      try {
+        const instance = await env.TRIAGE.get(`triage-${id}`);
+        await instance.sendEvent({ type: "resolved", payload: { note: text.slice(0, MAX_MESSAGE) } });
+      } catch (err) {
+        await room.abortResolve();
+        throw err;
+      }
       await room.addMessage("user", `Resolved: ${text.slice(0, MAX_MESSAGE)}`);
-      await room.setMeta({ status: "resolving" });
-      const instance = await env.TRIAGE.get(String(snap.meta.workflowId));
-      await instance.sendEvent({ type: "resolved", payload: { note: text.slice(0, MAX_MESSAGE) } });
       return json({ ok: true }, 202);
     }
   }
 
   if (parts[1] === "memory" && parts[2] === "seed" && method === "POST") {
-    let added = 0;
-    for (const s of SAMPLE_HISTORY) {
-      const vector = await embed(env, `${s.title}\n${s.signals}`);
-      await ledger.remember(s.id, s, vector, Date.now() - s.daysAgo * 86_400_000);
-      added++;
-    }
+    const vectors = await embedMany(env, SAMPLE_HISTORY.map((s) => `${s.title}\n${s.signals}`));
+    await Promise.all(
+      SAMPLE_HISTORY.map((s, i) => ledger.remember(s.id, s, vectors[i], Date.now() - s.daysAgo * 86_400_000)),
+    );
+    const added = SAMPLE_HISTORY.length;
     return json({ added });
   }
 

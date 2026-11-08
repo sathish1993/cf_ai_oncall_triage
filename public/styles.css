@@ -90,7 +90,7 @@ body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
 .status::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; background: var(--dim); vertical-align: 1px; }
 .status.investigating::before, .status.triaging::before, .status.resolving::before { background: var(--run); }
 .status.resolved::before { background: var(--ok); }
-.status.stale::before { background: var(--bad); }
+.status.stale::before, .status.failed::before { background: var(--bad); }
 
 .stages { list-style: none; display: flex; margin: 0; padding: 12px 24px; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .stages li { flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px 6px 0; border-top: 3px solid var(--line); }

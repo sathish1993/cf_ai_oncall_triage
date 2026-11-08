@@ -64,7 +64,7 @@ async function loadList() {
   $("memory-count").textContent = memory;
   const ul = $("incident-list");
   ul.innerHTML = "";
-  const live = incidents.filter((i) => !i.id.startsWith("hist-"));
+  const live = incidents;
   if (!live.length) ul.innerHTML = `<li class="empty">Nothing open. Quiet shift so far.</li>`;
   for (const i of live) {
     const li = document.createElement("li");
@@ -157,6 +157,7 @@ async function refresh() {
 }
 
 function inFlight(snap) {
+  if (["failed", "stale"].includes(snap.meta.status)) return false;
   const busy = snap.stages.some((s) => s.status === "running" && s.name !== "resolution");
   const triaging = snap.stages.some((s) => s.status === "pending" && ["signals", "recall", "hypotheses"].includes(s.name));
   const finishing = snap.meta.status === "resolving" || (snap.meta.status === "resolved" && !snap.meta.postmortem) ||
@@ -196,7 +197,15 @@ function render(snap, prev) {
     for (const msg of newMsgs) appendMessage(msg.role, msg.content, msg.seq === snap.messages[0]?.seq);
   }
   const triageDone = snap.stages.find((s) => s.name === "hypotheses")?.status === "done";
-  if (!triageDone && !document.querySelector(".thinking") && snap.meta.status !== "stale") {
+  const parked = ["failed", "stale"].includes(m.status);
+  if (parked) document.querySelector(".thinking")?.remove();
+  if (m.status === "failed" && !document.querySelector(".failed-note")) {
+    const div = document.createElement("div");
+    div.className = "msg assistant thinking failed-note";
+    div.textContent = `Triage stopped: ${m.error || "a step failed"}. Start a new incident to retry.`;
+    $("log").appendChild(div);
+  }
+  if (!triageDone && !parked && !document.querySelector(".thinking")) {
     thinking("Working through the triage steps…");
   }
 
