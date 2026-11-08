@@ -72,3 +72,7 @@ This added [`docs/API.md`](docs/API.md). It covers the incident lifecycle and st
 > test it our for me with basic examples
 
 The assistant's sandbox could read the deployed page but couldn't send POST requests to it, so it wrote `scripts/smoke.mjs` instead. The script runs the basic examples against any deployment and prints a pass or fail for each check.
+
+> it worked. I was able debug 503 error and resolve it
+
+I confirmed the deployed app end to end against the real Llama 3.3: triage, chat, resolve and postmortem all worked on the Checkout 503s example.
